@@ -40,7 +40,6 @@ requirements = [
     "boltons>=20.1",
     "scikit-learn>=0.21.3",
     "packaging>=20.0",
-    "clisops>=0.1.0",
 ]
 
 if not os.getenv("READTHEDOCS"):
@@ -59,6 +58,7 @@ docs_requirements = [
     "ipykernel",
     "jupyter_client",
     "matplotlib",
+    "clisops",
 ]
 
 dev_requirements = []
