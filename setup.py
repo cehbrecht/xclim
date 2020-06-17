@@ -59,6 +59,7 @@ docs_requirements = [
     "jupyter_client",
     "matplotlib",
     "distributed>=2.0",
+    "clisops",
 ]
 
 dev_requirements = []
