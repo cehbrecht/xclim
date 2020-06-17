@@ -12,7 +12,7 @@ URL = "https://github.com/Ouranosinc/xclim"
 AUTHOR = "Travis Logan"
 AUTHOR_EMAIL = "logan.travis@ouranos.ca"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.17.1-beta"
+VERSION = "0.17.4-beta"
 LICENSE = "Apache Software License 2.0"
 
 with open("README.rst") as readme_file:
@@ -29,8 +29,12 @@ requirements = [
     "pandas>=0.23",
     "cftime>=1.0.4",
     "netCDF4>=1.4",
-    "rtree>=0.9.4",
-    "dask[complete]>=2.6",
+    "fiona>=1.8",
+    "geojson>=2.5.0",
+    "shapely>=1.6",
+    "geopandas>=0.7",
+    "dask[array]>=2.6",
+    "pyproj>=2.5",
     "pint>=0.9",
     "bottleneck~=1.3.1",
     "boltons>=20.1",
@@ -54,7 +58,7 @@ docs_requirements = [
     "ipykernel",
     "jupyter_client",
     "matplotlib",
-    "clisops",
+    "distributed>=2.0",
 ]
 
 dev_requirements = []
