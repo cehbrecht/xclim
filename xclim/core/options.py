@@ -8,8 +8,6 @@ from boltons.funcutils import wraps
 from .locales import _valid_locales
 from .utils import ValidationError
 
-logging.captureWarnings(True)
-
 
 METADATA_LOCALES = "metadata_locales"
 DATA_VALIDATION = "data_validation"
@@ -48,7 +46,7 @@ _VALIDATORS = {
     METADATA_LOCALES: _valid_locales,
     DATA_VALIDATION: _LOUDNESS_OPTIONS.__contains__,
     CF_COMPLIANCE: _LOUDNESS_OPTIONS.__contains__,
-    CHECK_MISSING: MISSING_METHODS.__contains__,
+    CHECK_MISSING: lambda meth: meth != "from_context" and meth in MISSING_METHODS,
     MISSING_OPTIONS: _valid_missing_options,
 }
 
@@ -125,7 +123,7 @@ class set_options:
         'warn' the user on inputs that fail the CF compliance checks in `xclim.core.checks`.
       Default: ``'warn'``.
     - ``check_missing``: How to check for missing data and flag computed indicators.
-        Default available methods are "any", "wmo", "pct" and "at_least_n".
+        Default available methods are "any", "wmo", "pct", "at_least_n" and "skip".
         Missing method can be registered through the `xclim.core.checks.register_missing_method` decorator.
       Default: ``'any'``
     - ``missing_options``: Dictionary of options to pass to the missing method. Keys must the name of

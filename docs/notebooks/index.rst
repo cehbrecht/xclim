@@ -9,3 +9,4 @@ Examples
    ensembles
    options
    mappings
+   sdba
