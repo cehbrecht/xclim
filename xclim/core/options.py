@@ -1,4 +1,4 @@
-"""Global or contextual options for xclim, similar to xarray.set_options"""
+"""Global or contextual options for xclim, similar to xarray.set_options."""
 import logging
 from inspect import signature
 from warnings import warn
@@ -7,7 +7,6 @@ from boltons.funcutils import wraps
 
 from .locales import _valid_locales
 from .utils import ValidationError
-
 
 METADATA_LOCALES = "metadata_locales"
 DATA_VALIDATION = "data_validation"
@@ -60,13 +59,16 @@ _SETTERS = {MISSING_OPTIONS: _set_missing_options}
 
 
 def register_missing_method(name):
+    """Register missing method."""
+
     def _register_missing_method(cls):
         sig = signature(cls.is_missing)
         opts = {
-            key: param.default
+            key: param.default if param.default != param.empty else None
             for key, param in sig.parameters.items()
             if key not in ["self", "null", "count"]
         }
+
         MISSING_METHODS[name] = cls
         OPTIONS[MISSING_OPTIONS][name] = opts
         return cls
@@ -74,36 +76,40 @@ def register_missing_method(name):
     return _register_missing_method
 
 
-def datacheck(func):
-    @wraps(func)
-    def _run_check(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except ValidationError as err:
-            if OPTIONS[DATA_VALIDATION] == "log":
-                logging.info(err.msg)
-            elif OPTIONS[DATA_VALIDATION] == "warn":
-                warn(err.msg, UserWarning, stacklevel=3)
-            else:
-                raise err
+def _run_check(func, option, *args, **kwargs):
+    """Run function and customize exception handling based on option."""
+    try:
+        func(*args, **kwargs)
+    except ValidationError as err:
+        if OPTIONS[option] == "log":
+            logging.info(err.msg)
+        elif OPTIONS[option] == "warn":
+            warn(err.msg, UserWarning, stacklevel=3)
+        else:
+            raise err
 
-    return _run_check
+
+def datacheck(func):
+    """Decorate functions checking data inputs validity."""
+
+    @wraps(func)
+    def run_check(*args, **kwargs):
+        return _run_check(func, DATA_VALIDATION, *args, **kwargs)
+
+    return run_check
 
 
 def cfcheck(func):
-    @wraps(func)
-    def _run_check(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except ValidationError as err:
-            if OPTIONS[CF_COMPLIANCE] == "log":
-                logging.info(err.msg)
-            elif OPTIONS[CF_COMPLIANCE] == "warn":
-                warn(err.msg, UserWarning, stacklevel=3)
-            else:
-                raise err
+    """Decorate functions checking CF-compliance of DataArray attributes.
 
-    return _run_check
+    Functions should raise ValidationError exceptions whenever attributes are non-conformant.
+    """
+
+    @wraps(func)
+    def run_check(*args, **kwargs):
+        return _run_check(func, CF_COMPLIANCE, *args, **kwargs)
+
+    return run_check
 
 
 class set_options:
@@ -130,13 +136,13 @@ class set_options:
         missing method and values must be mappings from option names to values.
 
     You can use ``set_options`` either as a context manager:
-
-    >>> with xclim.set_options(metadata_locales=['fr']):
-    ...     out = xclim.atmos.tg_mean(tas)
+    >>> import xclim  # doctest: +SKIP
+    >>> with xclim.set_options(metadata_locales=['fr'])  # doctest: +SKIP
+    ...     out = xclim.atmos.tg_mean(tas)  # doctest: +SKIP
 
     Or to set global options:
 
-    >>> xclim.set_options(missing_options={'pct': {'tolerance': 0.04}})
+    >>> xclim.set_options(missing_options={'pct': {'tolerance': 0.04}})  # doctest: +SKIP
     <xclim.core.options.set_options object at ...>
     """
 
@@ -156,9 +162,11 @@ class set_options:
         self.update(kwargs)
 
     def __enter__(self):
+        """Context management."""
         return
 
     def update(self, kwargs):
+        """Update values."""
         for k, v in kwargs.items():
             if k in _SETTERS:
                 _SETTERS[k](v)
@@ -166,4 +174,5 @@ class set_options:
                 OPTIONS[k] = v
 
     def __exit__(self, type, value, traceback):
+        """Context management."""
         self.update(self.old)

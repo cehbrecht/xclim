@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# noqa: D205,D400
 """
 Internationalization
 ====================
@@ -48,11 +49,7 @@ TRANSLATABLE_ATTRS
 import json
 import warnings
 from pathlib import Path
-from typing import Any
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import pkg_resources
 
@@ -191,11 +188,10 @@ def get_local_attrs(
     for locale in locales:
         loc_name, loc_dict = get_local_dict(locale)
         loc_name = f"_{loc_name}" if append_locale_name else ""
-        ind_name = f"{indicator.__module__.split('.')[2]}.{indicator.identifier}"
-        local_attrs = loc_dict.get(ind_name)
+        local_attrs = loc_dict.get(indicator.__class__.__name__)
         if local_attrs is None:
             warnings.warn(
-                f"Attributes of indicator {ind_name} in language {locale} were requested, but none were found."
+                f"Attributes of indicator {indicator.__class__.__name__} in language {locale} were requested, but none were found."
             )
         else:
             for name in TRANSLATABLE_ATTRS:
@@ -225,8 +221,7 @@ def get_local_formatter(locale: Union[str, Sequence[str], Tuple[str, dict]]):
 
 
 class UnavailableLocaleError(ValueError):
-    """Error raised when a locale is requested but doesn"t exist.
-    """
+    """Error raised when a locale is requested but doesn't exist."""
 
     def __init__(self, locale):
         super().__init__(

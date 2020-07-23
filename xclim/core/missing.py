@@ -1,26 +1,40 @@
+# noqa: D205,D400
 """
 Missing values identification
 =============================
 
-Algorithms identifying missing values using different criteria:
+Indicators may use different criteria to determine whether or not a computed indicator value should be
+considered missing. In some cases, the presence of any missing value in the input time series should result in a
+missing indicator value for that period. In other cases, a minimum number of valid values or a percentage of missing
+values should be enforced. The World Meteorological Organisation  (WMO) suggests criteria based on the number of
+consecutive and overall missing values per month.
 
-- missing_any: A result is missing if any input value is missing.
-- missing_wmo: A result is missing if 11 days are missing, or 5 consecutive values are missing in a month.
-- missing_pct: A result is missing if more than a given fraction of values are missing.
-- at_least_n_valid: A result is missing if less than a given number of valid values are present.
+`xclim` has a registry of missing value detection algorithms that can be extended by users to customize the behavior
+of indicators. Once registered, algorithms can be be used within indicators by setting the `missing` attribute of an
+`Indicator` subclass. By default, `xclim` registers the following algorithms:
 
-New missing value algorithms should subclass :class:`MissingBase`, see instructions in docstring.
+ * `any`: A result is missing if any input value is missing.
+ * `at_least_n`: A result is missing if less than a given number of valid values are present.
+ * `pct`: A result is missing if more than a given fraction of values are missing.
+ * `wmo`: A result is missing if 11 days are missing, or 5 consecutive values are missing in a month.
+ * `skip`: Skip missing value detection.
+ * `from_context`: Look-up the missing value algorithm from options settings. See :func:`xclim.set_options`.
+
+To define another missing value algorithm, subclass :class:`MissingBase` and decorate it with
+`xclim.core.options.register_missing_method`.
 
 """
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from xclim.core.options import CHECK_MISSING
-from xclim.core.options import MISSING_METHODS
-from xclim.core.options import MISSING_OPTIONS
-from xclim.core.options import OPTIONS
-from xclim.core.options import register_missing_method
+from xclim.core.options import (
+    CHECK_MISSING,
+    MISSING_METHODS,
+    MISSING_OPTIONS,
+    OPTIONS,
+    register_missing_method,
+)
 from xclim.indices import generic
 
 __all__ = [
@@ -234,7 +248,7 @@ class MissingWMO(MissingAny):
         super().__init__(da, freq, **indexer)
 
     def is_missing(self, null, count, nm=11, nc=5):
-        import xclim.indices.run_length as rl
+        from xclim.indices import run_length as rl
 
         # Check total number of days
         cond0 = null.count(dim="time") != count
@@ -311,8 +325,11 @@ class AtLeastNValid(MissingBase):
       A boolean array set to True if period has missing values.
     """
 
-    def is_missing(self, null, count, n=20):
-        """The result of a reduction operation is considered missing if less than `n` values are valid."""
+    def is_missing(self, null, count, n: int = 20):
+        """Check for missing results after a reduction operation.
+
+        The result of a reduction operation is considered missing if less than `n` values are valid.
+        """
         nvalid = null.count(dim="time") - null.sum(dim="time")
         return nvalid < n
 
@@ -336,8 +353,7 @@ class Skip(MissingBase):
 
 @register_missing_method("from_context")
 class FromContext(MissingBase):
-    """Return whether each element of the resampled da should be considered missing according
-    to the currently set options in `xclim.set_options`.
+    """Return whether each element of the resampled da should be considered missing according to the currently set options in `xclim.set_options`.
 
     See `xclim.set_options` and `xclim.core.options.register_missing_method`.
     """
@@ -355,27 +371,28 @@ class FromContext(MissingBase):
 # --------------------------
 # --- Shortcut functions ---
 # --------------------------
-# These functions hide the fact the the algorithms are implemented in a class and make their use more user-friendly.
+# These stand-alone functions hide the fact the the algorithms are implemented in a class and make their use more
+# user-friendly. This can also be useful for testing.
 
 
-def missing_any(da, freq, **indexer):
+def missing_any(da, freq, **indexer):  # noqa: D103
     return MissingAny(da, freq, **indexer)()
 
 
-def missing_wmo(da, freq, nm=11, nc=5, **indexer):
+def missing_wmo(da, freq, nm=11, nc=5, **indexer):  # noqa: D103
     missing = MissingWMO(da, "M", **indexer)(nm=nm, nc=nc)
     return missing.resample(time=freq).any()
 
 
-def missing_pct(da, freq, tolerance, **indexer):
+def missing_pct(da, freq, tolerance, **indexer):  # noqa: D103
     return MissingPct(da, freq, **indexer)(tolerance=tolerance)
 
 
-def at_least_n_valid(da, freq, n=1, **indexer):
+def at_least_n_valid(da, freq, n=1, **indexer):  # noqa: D103
     return AtLeastNValid(da, freq, **indexer)(n=n)
 
 
-def missing_from_context(da, freq, **indexer):
+def missing_from_context(da, freq, **indexer):  # noqa: D103
     return FromContext.execute(da, freq, options={}, indexer=indexer)
 
 
